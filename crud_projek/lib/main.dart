@@ -93,7 +93,9 @@ class _ReservationAppState extends State<ReservationApp> {
       debugShowCheckedModeBanner: false,
       theme: ThemeData(colorSchemeSeed: Colors.green, useMaterial3: true),
       home: _activeUser == null
-          ? LoginPage(onLogin: _login)
+          ? LoginPage(
+            onLogin: _login,
+            onSignUp: (u) => setState(() => _users.add(u)),)
           : DashboardPage(
               user: _activeUser!,
               data: _reservations,
@@ -114,8 +116,9 @@ class _ReservationAppState extends State<ReservationApp> {
 }
 
 class LoginPage extends StatelessWidget {
-  LoginPage({super.key, required this.onLogin});
+  LoginPage({super.key, required this.onLogin, required this.onSignUp});
   final Function(String, String) onLogin;
+  final Function(AppUser) onSignUp;
   final userCtrl = TextEditingController();
   final passCtrl = TextEditingController();
 
@@ -136,6 +139,10 @@ class LoginPage extends StatelessWidget {
                 TextField(controller: passCtrl, decoration: const InputDecoration(labelText: "Password"), obscureText: true),
                 const SizedBox(height: 20),
                 ElevatedButton(onPressed: () => onLogin(userCtrl.text, passCtrl.text), child: const Text("Masuk")),
+                TextButton(
+                  onPressed: () => _showSignUpDialog(context), // Sekarang bisa memanggil fungsi di bawah
+                  child: const Text("Belum punya akun? Daftar Sekarang"),
+                ),
               ],
             ),
           ),
@@ -143,7 +150,50 @@ class LoginPage extends StatelessWidget {
       ),
     );
   }
-}
+
+  // PINDAHKAN FUNGSI INI KE DALAM CLASS LoginPage (Sebelum kurung penutup terakhir)
+  void _showSignUpDialog(BuildContext context) {
+    final u = TextEditingController();
+    final p = TextEditingController();
+    final d = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text("Daftar Akun Baru"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: u, decoration: const InputDecoration(labelText: "Username (untuk login)")),
+            TextField(controller: d, decoration: const InputDecoration(labelText: "Nama Lengkap")),
+            TextField(controller: p, decoration: const InputDecoration(labelText: "Password"), obscureText: true),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Batal")),
+          ElevatedButton(
+            onPressed: () {
+              if (u.text.isNotEmpty && p.text.isNotEmpty) {
+                // Sekarang onSignUp bisa diakses karena berada di class yang sama
+                onSignUp(AppUser(
+                  username: u.text,
+                  password: p.text,
+                  role: UserRole.user,
+                  displayName: d.text.isEmpty ? u.text : d.text,
+                ));
+                Navigator.pop(ctx);
+                messengerKey.currentState?.showSnackBar(
+                  const SnackBar(content: Text("Pendaftaran Berhasil! Silakan Login."))
+                );
+              }
+            },
+            child: const Text("Daftar"),
+          ),
+        ],
+      ),
+    );
+  }
+} // Penutup class LoginPage
 
 class DashboardPage extends StatelessWidget {
   const DashboardPage({
